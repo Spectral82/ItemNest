@@ -1,0 +1,64 @@
+[project]
+name = "itemnest"
+version = "0.1.0"
+description = "Интернет-магазин: каталог товаров и категорий с тестами и покрытием кода"
+authors = [
+    {name = "Roman",email = "Spctrl82@yandex.ru"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "mypy (>=2.3.0,<3.0.0)",
+    "isort (>=8.0.1,<9.0.0)",
+    "black (>=26.5.1,<27.0.0)"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py314']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip = [".git", "venv", "build", "dist"]
+src_paths = ["src"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203"]
+exclude = [".git", "__pycache__", "venv", "build", "dist"]
+per-file-ignores = [
+    # Пример: если где-то нужно игнорировать конкретные ошибки
+    # "src/utils.py:F401"
+]
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_calls = true
+no_implicit_optional = true
+files = ["src"]
