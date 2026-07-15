@@ -1,36 +1,100 @@
-from typing import Dict, Any, List
-
-
 class Product:
-    def __init__(self, name: str, description: str, price: float, quantity: int):
+    """Товар в интернет‑магазине.
+
+    Предоставляет хранение основных характеристик товара, валидацию цены,
+    создание из словаря, слияние с существующими товарами и базовые операции.
+    """
+
+    def __init__(
+        self, name: str, description: str, price: float, quantity: int
+    ) -> None:
+        """Инициализирует товар с заданными параметрами.
+
+        Устанавливает название, описание и количество напрямую.
+        Для цены используется сеттер с валидацией: значение должно быть положительным.
+
+        Args:
+            name: Название товара.
+            description: Описание товара.
+            price: Цена товара (должна быть > 0).
+            quantity: Количество единиц товара на складе.
+        """
         self.name = name
         self.description = description
+        self.__price: float = 0.0
         self.price = price
         self.quantity = quantity
 
     @property
     def price(self) -> float:
+        """Возвращает текущую цену товара.
+
+        Returns:
+            Цена товара в рублях.
+        """
         return self.__price
 
     @price.setter
     def price(self, value: float) -> None:
+        """Устанавливает новую цену товара с валидацией.
+
+        Цена должна быть строго больше нуля. Если передано значение <= 0,
+        цена не обновляется, а в stdout выводится сообщение об ошибке.
+
+        Args:
+            value: Новое значение цены.
+        """
         if value <= 0:
             print("Цена не должна быть нулевая или отрицательная")
             return
-
-        if hasattr(self, "_Product__price"):
-            old_price = self.price
-            if value < old_price:
-                confirm = input(f"Цена понижается с {old_price:.2f} до {value:.2f}. Подтвердить (y/n)? ")
-                if confirm.lower() != "y":
-                    print("Изменение цены отменено.")
-                    return
-
         self.__price = value
 
+    def __add__(self, other: "Product") -> float:
+        """Вычисляет суммарную стоимость двух товаров на складе.
+
+        Результат равен сумме произведений цены на количество для обоих товаров:
+        (self.price * self.quantity) + (other.price * other.quantity).
+
+        Если other не является экземпляром Product, возвращается NotImplemented.
+
+        Args:
+            other: Другой объект Product для сложения.
+
+        Returns:
+            Суммарная стоимость двух товаров в рублях либо NotImplemented.
+        """
+        if not isinstance(other, Product):
+            return NotImplemented
+        return (self.price * self.quantity) + (other.price * other.quantity)
+
+    def __str__(self) -> str:
+        """Возвращает читаемое строковое представление товара.
+
+        Формат: «Название товара, X руб. Остаток: X шт.».
+
+        Returns:
+            Строковое представление товара.
+        """
+        return f"{self.name}, {self.price:.0f} руб. Остаток: {self.quantity} шт."
+
     @classmethod
-    def new_product(cls, data: Dict[str, Any]) -> "Product":
-        """Создаёт продукт из словаря (без проверки на дубли)."""
+    def new_product(cls, data: dict) -> "Product":
+        """Создаёт новый объект Product из словаря с данными.
+
+        Ожидаемый формат словаря:
+        {
+            "name": str,
+            "description": str,
+            "price": float,
+            "quantity": int
+        }
+
+        Args:
+            data: Словарь с параметрами товара.
+
+        Returns:
+            Новый экземпляр Product.
+        """
         return cls(
             name=data["name"],
             description=data["description"],
@@ -40,27 +104,27 @@ class Product:
 
     @classmethod
     def new_product_with_merge(
-        cls, data: Dict[str, Any], existing_products: List["Product"]
+        cls, data: dict, existing_products: list["Product"]
     ) -> "Product":
-        """
-        Создаёт товар из словаря. Если товар с таким именем уже есть в existing_products,
-        то вместо создания нового объекта:
-          - суммирует количество (старое + новое)
-          - выбирает максимальную цену из старой и новой.
-        Возвращает найденный (обновлённый) или новый объект.
+        """Пытается обновить существующий товар или создать новый.
+
+        Если товар с таким именем уже есть в списке existing_products,
+        увеличивает его количество и обновляет цену (если новая цена выше).
+        Если товара нет — создаёт и возвращает новый экземпляр.
+
+        Args:
+            data: Словарь с данными о товаре (name, price, quantity, description).
+            existing_products: Список уже существующих объектов Product.
+
+        Returns:
+            Обновлённый существующий товар либо новый экземпляр Product.
         """
         name = data["name"]
-
         for prod in existing_products:
             if prod.name == name:
                 prod.quantity += data["quantity"]
-
                 new_price = data["price"]
                 if new_price > prod.price:
                     prod.price = new_price
-                if new_price > prod.price:
-                    prod.__price = new_price
-
                 return prod
-
         return cls.new_product(data)
