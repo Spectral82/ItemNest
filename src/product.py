@@ -1,3 +1,6 @@
+from typing import List
+
+
 class Product:
     """Товар в интернет‑магазине.
 
@@ -52,6 +55,10 @@ class Product:
     def __add__(self, other: "Product") -> float:
         """Вычисляет суммарную стоимость двух товаров на складе.
 
+        Сложение разрешено только между объектами ОДНОГО И ТОГО ЖЕ класса.
+        Проверка осуществляется через type(self) == type(other).
+        Если классы различаются, выбрасывается TypeError.
+
         Результат равен сумме произведений цены на количество для обоих товаров:
         (self.price * self.quantity) + (other.price * other.quantity).
 
@@ -61,10 +68,21 @@ class Product:
             other: Другой объект Product для сложения.
 
         Returns:
-            Суммарная стоимость двух товаров в рублях либо NotImplemented.
+            Суммарная стоимость двух товаров в рублях.
+
+        Raises:
+            TypeError: Если self и other — экземпляры разных классов (например, Smartphone и LawnGrass).
         """
         if not isinstance(other, Product):
             return NotImplemented
+
+        if type(self) != type(other):
+            raise TypeError(
+                f"Нельзя складывать товары разных классов: "
+                f"{type(self).__name__} и {type(other).__name__}. "
+                "Сложение разрешено только для одинаковых классов товаров."
+            )
+
         return (self.price * self.quantity) + (other.price * other.quantity)
 
     def __str__(self) -> str:
@@ -104,7 +122,7 @@ class Product:
 
     @classmethod
     def new_product_with_merge(
-        cls, data: dict, existing_products: list["Product"]
+        cls, data: dict, existing_products: List["Product"]
     ) -> "Product":
         """Пытается обновить существующий товар или создать новый.
 
@@ -128,3 +146,57 @@ class Product:
                     prod.price = new_price
                 return prod
         return cls.new_product(data)
+
+
+class Smartphone(Product):
+    """Смартфон — специализированный товар с дополнительными характеристиками."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        model: str,
+        efficiency: float,
+        memory: int,
+        color: str,
+    ) -> None:
+        super().__init__(name, description, price, quantity)
+        self.model = model
+        self.efficiency = efficiency
+        self.memory = memory
+        self.color = color
+
+    def __str__(self) -> str:
+        return (
+            f"{self.name} ({self.model}), {self.color}, "
+            f"память: {self.memory} ГБ, производительность: {self.efficiency:.1f}, "
+            f"{self.price:.0f} руб., остаток: {self.quantity} шт."
+        )
+
+
+class LawnGrass(Product):
+    """Газонная трава — специализированный товар с агрономическими характеристиками."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        country: str,
+        germination_period: int,
+        color: str,
+    ) -> None:
+        super().__init__(name, description, price, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
+
+    def __str__(self) -> str:
+        return (
+            f"{self.name}, цвет: {self.color}, страна: {self.country}, "
+            f"срок прорастания: {self.germination_period} дней, "
+            f"{self.price:.0f} руб., остаток: {self.quantity} шт."
+        )

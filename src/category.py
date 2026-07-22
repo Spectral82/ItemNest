@@ -28,10 +28,13 @@ class Category:
         self.description = description
         Category.category_count += 1
 
-    def add_product(self, product: Product) -> None:
+    def add_product(self, product: object) -> None:
         """Добавляет товар в категорию.
 
-        Проверяет, что переданный объект является экземпляром класса Product.
+        Проверяет, что переданный объект является экземпляром класса Product
+        или любого его наследника (например, Smartphone, LawnGrass).
+        Для этого используются issubclass и isinstance.
+
         При успешном добавлении увеличивает глобальный счётчик товаров
         (Category.product_count) на 1.
 
@@ -39,10 +42,18 @@ class Category:
             product: Объект товара для добавления.
 
         Raises:
-            TypeError: Если переданный объект не является экземпляром Product.
+            TypeError: Если переданный объект не является экземпляром Product
+                       или его наследника.
         """
+        if not issubclass(type(product), Product):
+            raise TypeError(
+                f"Нельзя добавить объект типа {type(product).__name__} в категорию. "
+                "Разрешены только объекты Product и его наследники."
+            )
+
         if not isinstance(product, Product):
             raise TypeError("Можно добавлять только объекты класса Product.")
+
         self.__products.append(product)
         Category.product_count += 1
 
@@ -92,7 +103,7 @@ class Category:
         """Возвращает читаемое строковое представление категории.
 
         Формат: «Название категории, количество продуктов: X шт.»,
-        где X — суммарное количество штук всех товаров категории.
+        где X — суммарное количество штук всех товаров категории.
 
         Returns:
             Строковое представление категории.

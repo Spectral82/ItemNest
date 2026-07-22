@@ -1,7 +1,7 @@
 import pytest
 
 from src.category import Category
-from src.product import Product
+from src.product import LawnGrass, Product, Smartphone
 
 
 class TestProduct:
@@ -27,7 +27,9 @@ class TestProduct:
         p.price = 200.0
         assert p.price == 200.0
 
-    def test_price_setter_rejects_non_positive_values( self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_price_setter_rejects_non_positive_values(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         p = Product("Товар", "Описание", 100.0, 5)
         old_price = p.price
 
@@ -40,11 +42,6 @@ class TestProduct:
         captured = capsys.readouterr()
         assert "Цена не должна быть нулевая или отрицательная" in captured.out
 
-    def test_price_setter_does_not_return_value(self) -> None:
-        p = Product("Товар", "Описание", 100.0, 5)
-        p.price = 150.0
-        assert p.price == 150.0
-
     def test_add_two_products_returns_total_value(self) -> None:
         a = Product("A", "Desc", 10.0, 2)  # 20
         b = Product("B", "Desc", 5.0, 3)  # 15
@@ -55,6 +52,34 @@ class TestProduct:
         p = Product("A", "Desc", 10.0, 2)
         result = p.__add__("string")
         assert result is NotImplemented
+
+    # --- НОВЫЕ ТЕСТЫ ДЛЯ ЗАДАНИЯ 4: __add__ и разные классы ---
+
+    def test_add_between_different_subclasses_raises_type_error(self) -> None:
+        phone = Smartphone(
+            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        with pytest.raises(TypeError):
+            _ = phone + grass
+
+    def test_add_between_same_subclass_works(self) -> None:
+        phone1 = Smartphone(
+            "Смартфон 1", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        phone2 = Smartphone(
+            "Смартфон 2", "Описание", 22000.0, 4, "Lite", 9.0, 128, "белый"
+        )
+        total = phone1 + phone2
+        expected = phone1.price * phone1.quantity + phone2.price * phone2.quantity
+        assert total == expected
+
+    def test_add_between_two_lawn_grass_works(self) -> None:
+        grass1 = LawnGrass("Трава 1", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        grass2 = LawnGrass("Трава 2", "Описание", 1300.0, 40, "Россия", 6, "изумрудная")
+        total = grass1 + grass2
+        expected = grass1.price * grass1.quantity + grass2.price * grass2.quantity
+        assert total == expected
 
     def test_new_product_from_dict(self) -> None:
         data = {
@@ -138,10 +163,9 @@ class TestCategory:
     def test_add_product_does_not_return_value(self) -> None:
         cat = Category("Тестовая", "Описание")
         p = Product("Товар", "Описание", 100.0, 10)
-        cat.add_product(p)
+        result = cat.add_product(p)
+        assert result is None
         assert cat.product_quantity == 1
-        products_list = getattr(cat, "_Category__products")
-        assert products_list[0] is p
 
     def test_add_product_increments_product_count(self) -> None:
         assert Category.product_count == 0
@@ -157,10 +181,46 @@ class TestCategory:
         cat2.add_product(p2)
         assert Category.product_count == 2
 
-    def test_add_product_raises_type_error_for_non_product(self) -> None:
+    def test_add_product_rejects_string(self) -> None:
         cat = Category("Тестовая", "Описание")
-        with pytest.raises(TypeError):
-            cat.add_product("не продукт")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product("просто строка")
+        msg = str(exc_info.value).lower()
+        assert "нельзя добавить объект типа" in msg
+        assert "разрешены только объекты product" in msg
+
+    def test_add_product_rejects_dict(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product({"name": "Плохой товар", "price": 100})
+        assert "dict" in str(exc_info.value)
+
+    def test_add_product_rejects_custom_class(self) -> None:
+        class FakeItem:
+            pass
+
+        fake = FakeItem()
+        cat = Category("Тестовая", "Описание")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product(fake)
+        assert "FakeItem" in str(exc_info.value)
+
+    def test_add_product_accepts_smartphone_as_subclass(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        phone = Smartphone(
+            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        cat.add_product(phone)
+        assert cat.product_quantity == 1
+        # Проверка, что счётчик класса тоже вырос
+        assert Category.product_count == 1
+
+    def test_add_product_accepts_lawn_grass_as_subclass(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        cat.add_product(grass)
+        assert cat.product_quantity == 1
+        assert Category.product_count == 1
 
     def test_products_getter_is_property(self) -> None:
         cat = Category("Тестовая", "Описание")

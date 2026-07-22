@@ -1,24 +1,22 @@
 from .category import Category
-from .product import Product
+from .product import LawnGrass, Product, Smartphone
 
 
 def main() -> None:
     """Точка входа в демонстрационное приложение ItemNest.
 
-    Выполняет полный сценарий работы интернет‑магазина:
-      * сбрасывает счётчики категорий и товаров для чистой демонстрации;
-      * создаёт тестовые товары и категории;
-      * демонстрирует добавление товаров в категории;
-      * проверяет логику слияния товаров (new_product_with_merge):
-          - обновление количества при совпадении имени;
-          - выбор максимальной цены;
-      * тестирует валидацию цены (запрет нулевых/отрицательных значений);
-      * показывает работу строковых представлений (__str__) для Product и Category;
-      * выводит отчёт по товарам через свойство products;
-      * отображает глобальную статистику (category_count, product_count);
-      * рассчитывает и выводит суммарную стоимость товаров в категории;
-      * детально демонстрирует работу магического метода __add__ для Product,
-        включая пошаговую формулу расчёта общей стоимости на складе.
+    Выполняет полный сценарий работы интернет‑магазина, включая:
+      * сброс счётчиков для чистой демонстрации;
+      * создание базовых товаров и категорий;
+      * демонстрацию добавления товаров в категории;
+      * проверку логики слияния товаров (new_product_with_merge);
+      * валидацию цены;
+      * работу строковых представлений (__str__) для Product и Category;
+      * отчёты по товарам и глобальную статистику;
+      * расчёт суммарной стоимости товаров в категории;
+      * демонстрацию магического метода __add__ для Product (с ограничением по классам);
+      * демонстрацию специализированных товаров: Smartphone и LawnGrass;
+      * тесты защиты add_product: запрет на добавление нетоваров и посторонних объектов.
     """
     # Сбрасываем счётчики для чистой демонстрации
     Category.category_count = 0
@@ -143,33 +141,9 @@ def main() -> None:
     a = Product("Ноутбук X1", "16 ГБ ОЗУ, 512 ГБ SSD", 75000.50, 10)
     b = Product("Мышь беспроводная", "Эргономичная, Bluetooth", 2500.00, 50)
 
-    print("\nПример расчёта суммы стоимости двух товаров:")
-    print(f"Ноутбук X1: цена = {a.price} руб., количество = {a.quantity} шт.")
-    print(
-        f"Мышь беспроводная: цена = {b.price} руб., " f"количество = {b.quantity} шт."
-    )
-    print()
-    print("Логика сложения (a + b):")
-    print(
-        f"  Стоимость Ноутбук X1 на складе = {a.price} × {a.quantity} = "
-        f"{a.price * a.quantity}"
-    )
-    print(
-        f"  Стоимость Мышь беспроводная на складе = {b.price} × {b.quantity} = "
-        f"{b.price * b.quantity}"
-    )
-    print()
+    print("\nПример расчёта суммы стоимости двух товаров (одинаковый класс Product):")
     result = a + b
-    print(
-        "  Итоговая сумма (Общее количество Ноутбук Х1 + Общее количество "
-        f"Мышь беспроводная) = {a.price * a.quantity} + {b.price * b.quantity} "
-        f"= {result}"
-    )
-    print()
-    print("Формула, которую реализует метод __add__:")
-    print("  result = (self.price * self.quantity) + " "(other.price * other.quantity)")
-    print()
-    print(f"В коде это работает как: a + b = {result}")
+    print(f"a + b = {result:.0f} руб.")
 
     print("\nЕщё один пример на реальных товарах из категории 'Электроника':")
     x = p1  # Ноутбук
@@ -184,6 +158,163 @@ def main() -> None:
         f"{y.price * y.quantity:.0f}"
     )
     print(f"Сумма (x + y) = {sum_xy:.0f} руб.")
+
+    # ==========================================================================
+    # ДЕМОНСТРАЦИЯ СПЕЦИАЛИЗИРОВАННЫХ ТОВАРОВ (Smartphone и LawnGrass)
+    # ==========================================================================
+    print("\n" + "=" * 60)
+    print("ДЕМОНСТРАЦИЯ СПЕЦИАЛИЗИРОВАННЫХ ТОВАРОВ")
+    print("=" * 60)
+
+    phone = Smartphone(
+        name="Смартфон UltraX",
+        description="Флагманский смартфон с камерой 200 МП",
+        price=89990.0,
+        quantity=15,
+        model="UltraX Pro",
+        efficiency=9.8,
+        memory=256,
+        color="графитовый",
+    )
+    print(f"\n{phone}")
+
+    grass = LawnGrass(
+        name="Трава газонная GreenLawn",
+        description="Смесь для быстрого озеленения",
+        price=1200.0,
+        quantity=50,
+        country="Россия",
+        germination_period=7,
+        color="ярко-зелёная",
+    )
+    print(f"{grass}")
+
+    print(f"\nСмартфон - это уникальный проукт? {isinstance(phone, Product)}")
+    print(f"Трава - это уникальный продукт? {isinstance(grass, Product)}")
+
+    electronics.add_product(phone)
+    displays.add_product(grass)
+
+    print("\nОтчёт по категории 'Электроника' (теперь включает смартфон):")
+    print(electronics.products, end="")
+
+    print("\nОтчёт по категории 'Мониторы и ТВ' (теперь включает газонную траву):")
+    print(displays.products, end="")
+
+    print("\n=== Обновлённая глобальная статистика ===")
+    print(f"Всего категорий создано: {Category.category_count}")
+    print(f"Всего товаров (карточек): {Category.product_count}")
+
+    new_total_value_electronics = electronics.total_value()
+    formatted_new_value = f"{new_total_value_electronics:,.2f}".replace(
+        ",", " "
+    ).replace(".", ",")
+    print(
+        f"\nОбновлённая общая стоимость товаров в категории '{electronics.name}': "
+        f"{formatted_new_value} ₽"
+    )
+
+    # ==========================================================================
+    # ТЕСТ НОВОЙ ЛОГИКИ СЛОЖЕНИЯ: только одинаковые классы
+    # ==========================================================================
+    print("\n" + "=" * 60)
+    print("ТЕСТ: сложение товаров РАЗНЫХ классов (должно вызвать ошибку)")
+    print("=" * 60)
+
+    try:
+        total_mixed = phone + grass  # phone — Smartphone, grass — LawnGrass
+        print(f"Суммарная стоимость (неожиданно): {total_mixed}")
+    except TypeError as e:
+        print("Перехвачена ожидаемая ошибка:")
+        print(e)
+
+    print("\nТест: сложение товаров ОДНОГО класса (должно работать)")
+    phone2 = Smartphone(
+        name="Смартфон UltraX Mini",
+        description="Компактная версия",
+        price=79990.0,
+        quantity=10,
+        model="UltraX Mini",
+        efficiency=9.5,
+        memory=128,
+        color="серебристый",
+    )
+    total_same = phone + phone2
+    print(f"Суммарная стоимость двух смартфонов: {total_same:.0f} руб.")
+
+    grass2 = LawnGrass(
+        name="Трава газонная GreenLawn Extra",
+        description="Улучшенная смесь",
+        price=1300.0,
+        quantity=40,
+        country="Россия",
+        germination_period=6,
+        color="изумрудная",
+    )
+    total_grass_same = grass + grass2
+    print(f"Суммарная стоимость двух видов травы: {total_grass_same:.0f} руб.")
+
+    # ==========================================================================
+    # ТЕСТ ЗАЩИТЫ add_product (issubclass / isinstance)
+    # ==========================================================================
+    print("\n" + "=" * 60)
+    print("ТЕСТ: ЗАЩИТА МЕТОДА add_product")
+    print("=" * 60)
+
+    print("\n--- Тест: попытка добавить обычную строку вместо товара ---")
+    try:
+        electronics.add_product("Просто строка вместо товара")
+    except TypeError as e:
+        print("Перехвачена ожидаемая ошибка:")
+        print(e)
+
+    print("\n--- Тест: попытка добавить произвольный объект (FakeItem) ---")
+
+    class FakeItem:
+        pass
+
+    fake = FakeItem()
+    try:
+        electronics.add_product(fake)
+    except TypeError as e:
+        print("Ещё одна ожидаемая ошибка:")
+        print(e)
+
+    print("\n--- Тест: попытка добавить словарь вместо товара ---")
+    try:
+        electronics.add_product({"name": "Плохой товар", "price": 100})
+    except TypeError as e:
+        print("Ожидаемая ошибка для словаря:")
+        print(e)
+
+    print(
+        "\n--- Тест: добавление корректного наследника (Smartphone) — должно пройти ---"
+    )
+    phone3 = Smartphone(
+        name="Смартфон TestPhone",
+        description="Тестовый смартфон",
+        price=50000.0,
+        quantity=5,
+        model="TestModel",
+        efficiency=8.5,
+        memory=128,
+        color="чёрный",
+    )
+    electronics.add_product(phone3)
+    print("Успешно добавлен ещё один смартфон!")
+    print(
+        f"Теперь товаров в категории 'Электроника': {electronics.product_quantity} шт."
+    )
+
+    print("\nФинальный отчёт по категории 'Электроника':")
+    print(electronics.products, end="")
+
+    final_total = electronics.total_value()
+    formatted_final = f"{final_total:,.2f}".replace(",", " ").replace(".", ",")
+    print(
+        f"\nИтоговая стоимость товаров в категории '{electronics.name}': "
+        f"{formatted_final} ₽"
+    )
 
 
 if __name__ == "__main__":
