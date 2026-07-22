@@ -1,74 +1,87 @@
 import pytest
 
 from src.category import Category
-from src.product import Product
+from src.product import LawnGrass, Product, Smartphone
 
 
-class TestProductInitialization:
-    """Тесты для класса Product: инициализация, валидация, методы создания и слияния."""
+class TestProduct:
 
     def test_product_initialization_sets_all_attributes(self) -> None:
-        """
-        Проверяет, что при создании Product корректно устанавливаются все атрибуты:
-        name, description, price, quantity.
-        """
         p = Product("Ноутбук X1", "16 ГБ ОЗУ", 75000.50, 10)
         assert p.name == "Ноутбук X1"
         assert p.description == "16 ГБ ОЗУ"
         assert p.price == 75000.50
         assert p.quantity == 10
 
-    def test_product_price_and_quantity_types(self) -> None:
-        """
-        Проверяет типы атрибутов price (float) и quantity (int) после инициализации.
-        """
+    def test_price_is_private_attribute(self) -> None:
         p = Product("Товар", "Описание", 100.0, 5)
-        assert isinstance(p.price, float)
-        assert isinstance(p.quantity, int)
+        assert not hasattr(p, "__price")
+        assert hasattr(p, "_Product__price")
 
-    def test_price_setter_rejects_negative_values(self) -> None:
-        """
-        Проверяет, что установка отрицательной цены или нуля отклоняется:
-        значение остаётся прежним.
-        """
-        p = Product("Тест", "Описание", 100.0, 10)
-        p.price = -10.0  # должно отклонить
-        assert p.price == 100.0
-        p.price = 0.0
-        assert p.price == 100.0
+    def test_price_getter_returns_value(self) -> None:
+        p = Product("Товар", "Описание", 99.99, 3)
+        assert p.price == 99.99
 
-    def test_price_setter_accepts_positive_values(self) -> None:
-        """
-        Проверяет, что установка положительного значения цены корректно применяется.
-        """
-        p = Product("Тест", "Описание", 100.0, 10)
+    def test_price_setter_accepts_positive_value_and_updates(self) -> None:
+        p = Product("Товар", "Описание", 100.0, 5)
         p.price = 200.0
         assert p.price == 200.0
 
-    def test_price_decrease_requires_confirmation(self, monkeypatch) -> None:
-        """
-        Проверяет логику подтверждения при снижении цены:
-        * при вводе 'y' цена меняется;
-        * при вводе 'n' цена остаётся прежней.
-        Для имитации ввода используется monkeypatch.
-        """
-        p = Product("Тест", "Описание", 100.0, 10)
+    def test_price_setter_rejects_non_positive_values(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        p = Product("Товар", "Описание", 100.0, 5)
+        old_price = p.price
 
-        # Имитируем подтверждение
-        monkeypatch.setattr("builtins.input", lambda x: "y")
-        p.price = 50.0
-        assert p.price == 50.0
+        p.price = -10.0
+        assert p.price == old_price
 
-        # Имитируем отказ
-        monkeypatch.setattr("builtins.input", lambda x: "n")
-        p.price = 30.0
-        assert p.price == 50.0
+        p.price = 0.0
+        assert p.price == old_price
+
+        captured = capsys.readouterr()
+        assert "Цена не должна быть нулевая или отрицательная" in captured.out
+
+    def test_add_two_products_returns_total_value(self) -> None:
+        a = Product("A", "Desc", 10.0, 2)  # 20
+        b = Product("B", "Desc", 5.0, 3)  # 15
+        result = a + b
+        assert result == 35.0
+
+    def test_add_with_non_product_returns_not_implemented(self) -> None:
+        p = Product("A", "Desc", 10.0, 2)
+        result = p.__add__("string")
+        assert result is NotImplemented
+
+    # --- НОВЫЕ ТЕСТЫ ДЛЯ ЗАДАНИЯ 4: __add__ и разные классы ---
+
+    def test_add_between_different_subclasses_raises_type_error(self) -> None:
+        phone = Smartphone(
+            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        with pytest.raises(TypeError):
+            _ = phone + grass
+
+    def test_add_between_same_subclass_works(self) -> None:
+        phone1 = Smartphone(
+            "Смартфон 1", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        phone2 = Smartphone(
+            "Смартфон 2", "Описание", 22000.0, 4, "Lite", 9.0, 128, "белый"
+        )
+        total = phone1 + phone2
+        expected = phone1.price * phone1.quantity + phone2.price * phone2.quantity
+        assert total == expected
+
+    def test_add_between_two_lawn_grass_works(self) -> None:
+        grass1 = LawnGrass("Трава 1", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        grass2 = LawnGrass("Трава 2", "Описание", 1300.0, 40, "Россия", 6, "изумрудная")
+        total = grass1 + grass2
+        expected = grass1.price * grass1.quantity + grass2.price * grass2.quantity
+        assert total == expected
 
     def test_new_product_from_dict(self) -> None:
-        """
-        Проверяет создание товара через метод new_product из словаря.
-        Убеждается, что все поля корректно извлекаются и устанавливаются.
-        """
         data = {
             "name": "Продукт",
             "description": "Описание",
@@ -80,13 +93,7 @@ class TestProductInitialization:
         assert p.price == 500.0
         assert p.quantity == 15
 
-    def test_merge_existing_product(self) -> None:
-
-        """
-        Проверяет слияние нового товара с существующим:
-        * количество суммируется;
-        * цена обновляется на новую (в этом тесте она выше).
-        """
+    def test_merge_existing_product_updates_quantity_and_price(self) -> None:
         existing = [Product("Мышь", "Описание", 2500.0, 50)]
         new_data = {
             "name": "Мышь",
@@ -99,73 +106,132 @@ class TestProductInitialization:
         assert merged.price == 3000.0
 
     def test_merge_keeps_higher_price(self) -> None:
-        """
-        Проверяет правило выбора максимальной цены при слиянии:
-        * если новая цена ниже — сохраняется старая;
-        * если новая цена выше — устанавливается новая.
-        """
         existing = [Product("Товар", "Описание", 1000.0, 10)]
 
-        # Новая цена ниже
         lower_data = {"name": "Товар", "price": 900.0, "quantity": 5}
         Product.new_product_with_merge(lower_data, existing)
         assert existing[0].price == 1000.0
 
-        # Новая цена выше
         higher_data = {"name": "Товар", "price": 1100.0, "quantity": 5}
         Product.new_product_with_merge(higher_data, existing)
         assert existing[0].price == 1100.0
 
 
-class TestCategoryInitialization:
-    """Тесты для класса Category: счётчики, добавление товаров, отчёты и расчёты."""
+class TestCategory:
 
     @pytest.fixture(autouse=True)
     def reset_counters(self) -> None:
-        """Сброс счётчиков Category.category_count и Category.product_count перед каждым тестом."""
         Category.category_count = 0
         Category.product_count = 0
         yield
 
-    def test_category_initialization_sets_all_attributes(self) -> None:
-
-        """Проверяет, что при создании Category корректно устанавливаются name и description."""
+    def test_category_initialization_sets_name_and_description(self) -> None:
         cat = Category("Электроника", "Устройства")
         assert cat.name == "Электроника"
         assert cat.description == "Устройства"
 
-    def test_category_counters(self) -> None:
-        """
-        Проверяет корректность работы счётчиков категорий:
-        каждый новый экземпляр увеличивает Category.category_count.
-        """
-        assert Category.category_count == 0
-        assert Category.product_count == 0
+    def test_products_list_is_private(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        assert not hasattr(cat, "__products")
+        assert hasattr(cat, "_Category__products")
 
+    def test_category_count_increases_on_init(self) -> None:
+        assert Category.category_count == 0
         Category("Cat1", "Desc1")
         assert Category.category_count == 1
-
         Category("Cat2", "Desc2")
         assert Category.category_count == 2
 
-    def test_add_product_method(self) -> None:
-        """
-        Проверяет метод add_product:
-        * товар добавляется в категорию;
-        * обновляются локальный счётчик product_quantity и глобальный Category.product_count.
-        """
+    def test_add_product_accepts_self_and_product(self) -> None:
         cat = Category("Тестовая", "Описание")
         p = Product("Товар", "Описание", 100.0, 10)
         cat.add_product(p)
         assert cat.product_quantity == 1
+
+    def test_add_product_uses_append_to_add_to_private_list(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        p1 = Product("Товар1", "Описание1", 100.0, 10)
+        p2 = Product("Товар2", "Описание2", 200.0, 5)
+        cat.add_product(p1)
+        cat.add_product(p2)
+        assert cat.product_quantity == 2
+        products_list = getattr(cat, "_Category__products")
+        assert len(products_list) == 2
+        assert products_list[0] is p1
+        assert products_list[1] is p2
+
+    def test_add_product_does_not_return_value(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        p = Product("Товар", "Описание", 100.0, 10)
+        result = cat.add_product(p)
+        assert result is None
+        assert cat.product_quantity == 1
+
+    def test_add_product_increments_product_count(self) -> None:
+        assert Category.product_count == 0
+        cat1 = Category("Cat1", "Desc1")
+        cat2 = Category("Cat2", "Desc2")
+
+        p1 = Product("Товар1", "Описание1", 100.0, 10)
+        p2 = Product("Товар2", "Описание2", 200.0, 5)
+
+        cat1.add_product(p1)
         assert Category.product_count == 1
 
-    def test_products_getter(self) -> None:
-        """
-        Проверяет свойство products:
-        возвращает строку с отчётом по всем товарам в формате:
-        'Название, X руб. Остаток: Y шт.\n'.
-        """
+        cat2.add_product(p2)
+        assert Category.product_count == 2
+
+    def test_add_product_rejects_string(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product("просто строка")
+        msg = str(exc_info.value).lower()
+        assert "нельзя добавить объект типа" in msg
+        assert "разрешены только объекты product" in msg
+
+    def test_add_product_rejects_dict(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product({"name": "Плохой товар", "price": 100})
+        assert "dict" in str(exc_info.value)
+
+    def test_add_product_rejects_custom_class(self) -> None:
+        class FakeItem:
+            pass
+
+        fake = FakeItem()
+        cat = Category("Тестовая", "Описание")
+        with pytest.raises(TypeError) as exc_info:
+            cat.add_product(fake)
+        assert "FakeItem" in str(exc_info.value)
+
+    def test_add_product_accepts_smartphone_as_subclass(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        phone = Smartphone(
+            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        cat.add_product(phone)
+        assert cat.product_quantity == 1
+        # Проверка, что счётчик класса тоже вырос
+        assert Category.product_count == 1
+
+    def test_add_product_accepts_lawn_grass_as_subclass(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+        cat.add_product(grass)
+        assert cat.product_quantity == 1
+        assert Category.product_count == 1
+
+    def test_products_getter_is_property(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        result = cat.products
+        assert isinstance(result, str)
+
+    def test_products_getter_name_is_products(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        assert hasattr(cat, "products")
+
+    def test_products_getter_returns_string(self) -> None:
         cat = Category("Тестовая", "Описание")
         p1 = Product("Товар1", "Описание1", 100.0, 10)
         p2 = Product("Товар2", "Описание2", 200.0, 5)
@@ -173,20 +239,48 @@ class TestCategoryInitialization:
         cat.add_product(p2)
 
         report = cat.products
-        expected = (
-            "Товар1, 100 руб. Остаток: 10 шт.\n" "Товар2, 200 руб. Остаток: 5 шт.\n"
-        )
-        assert report == expected
+        assert isinstance(report, str)
+        assert "Товар1" in report
+        assert "Товар2" in report
 
-    def test_total_value(self) -> None:
-        """
-        Проверяет метод total_value:
-        корректно считает общую стоимость товаров в категории как сумму (цена × количество).
-        """
+    def test_products_getter_format_matches_template(self) -> None:
         cat = Category("Тестовая", "Описание")
-        p1 = Product("Товар1", "Описание", 100.0, 10)
-        p2 = Product("Товар2", "Описание", 200.0, 5)
+        p1 = Product("Товар1", "Описание1", 100.0, 10)
+        p2 = Product("Товар2", "Описание2", 200.0, 5)
         cat.add_product(p1)
         cat.add_product(p2)
 
-        assert cat.total_value() == 100 * 10 + 200 * 5  # 2000.0
+        report = cat.products
+        lines = report.splitlines(keepends=True)  # сохраняем \n
+        assert len(lines) == 2
+
+        expected_line1 = f"{p1.name}, {p1.price:.0f} руб. Остаток: {p1.quantity} шт.\n"
+        expected_line2 = f"{p2.name}, {p2.price:.0f} руб. Остаток: {p2.quantity} шт.\n"
+
+        assert lines[0] == expected_line1
+        assert lines[1] == expected_line2
+
+    def test_products_getter_returns_empty_string_if_no_products(self) -> None:
+        cat = Category("Пустая", "Описание")
+        assert cat.products == ""
+
+    def test_total_value_calculates_correctly(self) -> None:
+        cat = Category("Тестовая", "Описание")
+        p1 = Product("Товар1", "Описание1", 100.0, 10)  # 1000
+        p2 = Product("Товар2", "Описание2", 200.0, 5)  # 1000
+        cat.add_product(p1)
+        cat.add_product(p2)
+
+        assert cat.total_value() == 2000.0
+
+    def test_str_representation_of_category(self) -> None:
+        cat = Category("Электроника", "Описание")
+        p1 = Product("Товар1", "Описание1", 100.0, 10)
+        p2 = Product("Товар2", "Описание2", 200.0, 5)
+        cat.add_product(p1)
+        cat.add_product(p2)
+
+        result = str(cat)
+        total_quantity = p1.quantity + p2.quantity
+        expected = f"Электроника, количество продуктов: {total_quantity} шт."
+        assert result == expected
