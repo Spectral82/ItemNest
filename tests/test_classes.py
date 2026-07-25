@@ -1,11 +1,10 @@
 import pytest
 
 from src.category import Category
-from src.product import LawnGrass, Product, Smartphone
+from src.product import BaseProduct, LawnGrass, Product, Smartphone
 
 
 class TestProduct:
-
     def test_product_initialization_sets_all_attributes(self) -> None:
         p = Product("Ноутбук X1", "16 ГБ ОЗУ", 75000.50, 10)
         assert p.name == "Ноутбук X1"
@@ -52,8 +51,6 @@ class TestProduct:
         p = Product("A", "Desc", 10.0, 2)
         result = p.__add__("string")
         assert result is NotImplemented
-
-    # --- НОВЫЕ ТЕСТЫ ДЛЯ ЗАДАНИЯ 4: __add__ и разные классы ---
 
     def test_add_between_different_subclasses_raises_type_error(self) -> None:
         phone = Smartphone(
@@ -116,9 +113,39 @@ class TestProduct:
         Product.new_product_with_merge(higher_data, existing)
         assert existing[0].price == 1100.0
 
+    def test_base_product_cannot_be_instantiated(self) -> None:
+        """Проверка, что абстрактный класс нельзя создать напрямую."""
+        with pytest.raises(TypeError) as exc_info:
+            BaseProduct()
+        assert "Can't instantiate abstract class" in str(exc_info.value)
+
+    def test_smartphone_mro_order(self) -> None:
+        mro = Smartphone.__mro__
+        assert Smartphone in mro
+        assert Product in mro
+        assert BaseProduct in mro
+        assert mro.index(Product) < mro.index(BaseProduct)
+
+    def test_lawn_grass_mro_order(self) -> None:
+        mro = LawnGrass.__mro__
+        assert LawnGrass in mro
+        assert Product in mro
+        assert BaseProduct in mro
+        assert mro.index(Product) < mro.index(BaseProduct)
+
+    def test_isinstance_checks_work_correctly(self) -> None:
+        phone = Smartphone(
+            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
+        )
+        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+
+        assert isinstance(phone, Product)
+        assert isinstance(phone, BaseProduct)
+        assert isinstance(grass, Product)
+        assert isinstance(grass, BaseProduct)
+
 
 class TestCategory:
-
     @pytest.fixture(autouse=True)
     def reset_counters(self) -> None:
         Category.category_count = 0
@@ -212,7 +239,6 @@ class TestCategory:
         )
         cat.add_product(phone)
         assert cat.product_quantity == 1
-        # Проверка, что счётчик класса тоже вырос
         assert Category.product_count == 1
 
     def test_add_product_accepts_lawn_grass_as_subclass(self) -> None:
