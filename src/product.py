@@ -3,12 +3,7 @@ from typing import List
 
 
 class LoggingInitMixin:
-    """
-    Простой и надёжный миксин для логирования.
-    Выводит в консоль конструктор объекта с аргументами.
-    ВАЖНО: чтобы в логе были красивые названия параметров (name=..., price=...),
-    создавай объекты, передавая аргументы по именам.
-    """
+    """Миксин для логирования: выводит в консоль имя класса и аргументы."""
 
     def __init__(self, *args, **kwargs) -> None:
         cls = self.__class__
@@ -24,31 +19,37 @@ class LoggingInitMixin:
 
 
 class BaseProduct(ABC):
-    """Абстрактный базовый класс для всех продуктов."""
+    """Абстрактный базовый класс товара: обязательные свойства и базовые операции."""
 
     @property
     @abstractmethod
     def name(self) -> str:
+        """Название товара."""
         pass
 
     @property
     @abstractmethod
     def price(self) -> float:
+        """Цена за единицу товара."""
         pass
 
     @property
     @abstractmethod
     def quantity(self) -> int:
+        """Количество единиц товара на складе."""
         pass
 
     @abstractmethod
     def __str__(self) -> str:
+        """Строковое представление товара в читаемом формате."""
         pass
 
     def total_cost(self) -> float:
+        """Возвращает общую стоимость товара (цена × количество)."""
         return self.price * self.quantity
 
     def __add__(self, other: "BaseProduct") -> float:
+        """Складывает общую стоимость двух товаров одного класса."""
         if not isinstance(other, BaseProduct):
             return NotImplemented
 
@@ -63,11 +64,12 @@ class BaseProduct(ABC):
 
 
 class Product(LoggingInitMixin, BaseProduct):
-    """Основной класс товара."""
+    """Базовый класс товара с валидацией цены и количества."""
 
     def __init__(
         self, name: str, description: str, price: float, quantity: int
     ) -> None:
+        """Инициализирует товар с проверкой корректности цены и количества."""
         self._name = name
         self.description = description
         self.__price: float = 0.0
@@ -76,14 +78,17 @@ class Product(LoggingInitMixin, BaseProduct):
 
     @property
     def name(self) -> str:
+        """Возвращает название товара."""
         return self._name
 
     @property
     def price(self) -> float:
+        """Возвращает текущую цену товара."""
         return self.__price
 
     @price.setter
     def price(self, value: float) -> None:
+        """Устанавливает цену, если она положительная."""
         if value <= 0:
             print("Цена не должна быть нулевая или отрицательная")
             return
@@ -91,43 +96,24 @@ class Product(LoggingInitMixin, BaseProduct):
 
     @property
     def quantity(self) -> int:
+        """Возвращает текущее количество товара."""
         return self._quantity
 
     @quantity.setter
     def quantity(self, value: int) -> None:
+        """Устанавливает количество, если оно неотрицательное."""
         if value < 0:
             print("Количество не может быть отрицательным")
             return
         self._quantity = value
 
     def __str__(self) -> str:
-        """Возвращает читаемое строковое представление товара.
-
-        Формат: «Название товара, X руб. Остаток: X шт.».
-
-        Returns:
-            Строковое представление товара.
-        """
+        """Читаемое представление: «Название, X руб. Остаток: X шт.»"""
         return f"{self.name}, {self.price:.0f} руб. Остаток: {self.quantity} шт."
 
     @classmethod
     def new_product(cls, data: dict) -> "Product":
-        """Создаёт новый объект Product из словаря с данными.
-
-        Ожидаемый формат словаря:
-        {
-            "name": str,
-            "description": str,
-            "price": float,
-            "quantity": int
-        }
-
-        Args:
-            data: Словарь с параметрами товара.
-
-        Returns:
-            Новый экземпляр Product.
-        """
+        """Создаёт товар из словаря с данными (name, description, price, quantity)."""
         return cls(
             name=data["name"],
             description=data["description"],
@@ -139,19 +125,7 @@ class Product(LoggingInitMixin, BaseProduct):
     def new_product_with_merge(
         cls, data: dict, existing_products: List["Product"]
     ) -> "Product":
-        """Пытается обновить существующий товар или создать новый.
-
-        Если товар с таким именем уже есть в списке existing_products,
-        увеличивает его количество и обновляет цену (если новая цена выше).
-        Если товара нет — создаёт и возвращает новый экземпляр.
-
-        Args:
-            data: Словарь с данными о товаре (name, price, quantity, description).
-            existing_products: Список уже существующих объектов Product.
-
-        Returns:
-            Обновлённый существующий товар либо новый экземпляр Product.
-        """
+        """Обновляет существующий товар по имени или создаёт новый."""
         name = data["name"]
         for prod in existing_products:
             if prod.name == name:
@@ -164,7 +138,7 @@ class Product(LoggingInitMixin, BaseProduct):
 
 
 class Smartphone(Product):
-    """Смартфон — специализированный товар с дополнительными характеристиками."""
+    """Товар типа «смартфон» с характеристиками: модель, память, цвет и т.д."""
 
     def __init__(
         self,
@@ -177,6 +151,7 @@ class Smartphone(Product):
         memory: int,
         color: str,
     ) -> None:
+        """Инициализирует смартфон, передавая базовые параметры в родительский класс."""
         super().__init__(name, description, price, quantity)
         self.model = model
         self.efficiency = efficiency
@@ -184,6 +159,7 @@ class Smartphone(Product):
         self.color = color
 
     def __str__(self) -> str:
+        """Читаемое представление смартфона с техническими характеристиками."""
         return (
             f"{self.name} ({self.model}), {self.color}, "
             f"память: {self.memory} ГБ, производительность: {self.efficiency:.1f}, "
@@ -192,7 +168,7 @@ class Smartphone(Product):
 
 
 class LawnGrass(Product):
-    """Газонная трава — специализированный товар с агрономическими характеристиками."""
+    """Товар типа «газонная трава» с агрономическими характеристиками."""
 
     def __init__(
         self,
@@ -204,12 +180,14 @@ class LawnGrass(Product):
         germination_period: int,
         color: str,
     ) -> None:
+        """Инициализирует газонную траву, передавая параметры в родительский класс."""
         super().__init__(name, description, price, quantity)
         self.country = country
         self.germination_period = germination_period
         self.color = color
 
     def __str__(self) -> str:
+        """Читаемое представление газонной травы с агрономическими параметрами."""
         return (
             f"{self.name}, цвет: {self.color}, страна: {self.country}, "
             f"срок прорастания: {self.germination_period} дней, "

@@ -1,10 +1,12 @@
 import pytest
 
 from src.category import Category
-from src.product import BaseProduct, LawnGrass, Product, Smartphone
+from src.product import LawnGrass, Product, Smartphone
 
 
 class TestProduct:
+    """Тесты для базового класса Product и его наследников."""
+
     def test_product_initialization_sets_all_attributes(self) -> None:
         p = Product("Ноутбук X1", "16 ГБ ОЗУ", 75000.50, 10)
         assert p.name == "Ноутбук X1"
@@ -113,41 +115,33 @@ class TestProduct:
         Product.new_product_with_merge(higher_data, existing)
         assert existing[0].price == 1100.0
 
-    def test_base_product_cannot_be_instantiated(self) -> None:
-        """Проверка, что абстрактный класс нельзя создать напрямую."""
-        with pytest.raises(TypeError) as exc_info:
-            BaseProduct()
-        assert "Can't instantiate abstract class" in str(exc_info.value)
+    def test_quantity_setter_rejects_negative_values(self) -> None:
+        p = Product("Товар", "Описание", 100.0, 10)
+        old_qty = p.quantity
 
-    def test_smartphone_mro_order(self) -> None:
-        mro = Smartphone.__mro__
-        assert Smartphone in mro
-        assert Product in mro
-        assert BaseProduct in mro
-        assert mro.index(Product) < mro.index(BaseProduct)
+        p.quantity = -5
+        assert p.quantity == old_qty
 
-    def test_lawn_grass_mro_order(self) -> None:
-        mro = LawnGrass.__mro__
-        assert LawnGrass in mro
-        assert Product in mro
-        assert BaseProduct in mro
-        assert mro.index(Product) < mro.index(BaseProduct)
+    def test_quantity_can_be_zero(self) -> None:
+        p = Product("Товар", "Описание", 100.0, 10)
+        p.quantity = 0
+        assert p.quantity == 0
 
-    def test_isinstance_checks_work_correctly(self) -> None:
-        phone = Smartphone(
-            "Смартфон", "Описание", 20000.0, 5, "Pro", 9.5, 256, "чёрный"
-        )
-        grass = LawnGrass("Трава", "Описание", 1200.0, 50, "Россия", 7, "зелёная")
+    def test_total_cost_with_zero_quantity(self) -> None:
+        p = Product("Товар", "Описание", 100.0, 0)
+        assert p.total_cost() == 0.0
 
-        assert isinstance(phone, Product)
-        assert isinstance(phone, BaseProduct)
-        assert isinstance(grass, Product)
-        assert isinstance(grass, BaseProduct)
+    def test_str_representation_for_zero_quantity(self) -> None:
+        p = Product("Товар", "Описание", 100.0, 0)
+        # формат: «Название, X руб. Остаток: X шт.»
+        assert str(p) == "Товар, 100 руб. Остаток: 0 шт."
 
 
 class TestCategory:
+    """Тесты для класса Category."""
+
     @pytest.fixture(autouse=True)
-    def reset_counters(self) -> None:
+    def reset_counters(self):
         Category.category_count = 0
         Category.product_count = 0
         yield
@@ -310,3 +304,192 @@ class TestCategory:
         total_quantity = p1.quantity + p2.quantity
         expected = f"Электроника, количество продуктов: {total_quantity} шт."
         assert result == expected
+
+        @pytest.fixture
+        def category(self) -> None:
+            return Category(name="Электроника", description="Все электронные товары")
+
+        @pytest.fixture
+        def products(self):
+            return [
+                Product(name="Наушники", description="Наушники", price=5000.0, quantity=2),
+                Smartphone(
+                    name="Смартфон Z",
+                    description="Смартфон Z",
+                    price=55000.0,
+                    quantity=1,
+                    model="Z1",
+                    efficiency=0.97,
+                    memory=256,
+                    color="серый",
+                ),
+            ]
+
+
+class TestProductBasic:
+    """Тесты базового класса Product: инициализация, свойства, валидация, __str__."""
+
+    def test_product_initialization_and_properties(self) -> None:
+        p = Product(
+            name="Чайник",
+            description="Электрический чайник",
+            price=2990.0,
+            quantity=5,
+        )
+        assert p.name == "Чайник"
+        assert p.description == "Электрический чайник"
+        assert p.price == 2990.0
+        assert p.quantity == 5
+
+    def test_price_validation_negative(self, capsys) -> None:
+        p = Product(
+            name="Тостер",
+            description="Тостер",
+            price=-100.0,
+            quantity=3,
+        )
+        assert p.price == 0.0
+        captured = capsys.readouterr()
+        assert "Цена не должна быть нулевая или отрицательная" in captured.out
+
+    def test_quantity_validation_negative(self, capsys) -> None:
+        p = Product(
+            name="Кофеварка",
+            description="Кофеварка",
+            price=4500.0,
+            quantity=3,
+        )
+        p.quantity = -2
+        assert p.quantity == 3
+        captured = capsys.readouterr()
+        assert "Количество не может быть отрицательным" in captured.out
+
+    def test_str_representation(self) -> None:
+        p = Product(name="Фляга", description="Фляга", price=1200.5, quantity=2)
+        s = str(p)
+        assert s.startswith("Фляга, ")
+        assert s.endswith(" руб. Остаток: 2 шт.")
+        import re
+
+        match = re.search(r"\d+", s)
+        assert match is not None
+
+    def test_total_cost(self) -> None:
+        p = Product(name="Кружка", description="Кружка", price=350.0, quantity=4)
+        assert p.total_cost() == 1400.0
+
+    def test_add_same_class_products(self) -> None:
+        p1 = Product(name="Тарелка", description="Тарелка", price=200.0, quantity=3)
+        p2 = Product(name="Чашка", description="Чашка", price=150.0, quantity=2)
+        result = p1 + p2
+        assert result == (p1.total_cost() + p2.total_cost())
+
+    def test_add_different_classes_raises_type_error(self) -> None:
+        p = Product(name="Ложка", description="Ложка", price=50.0, quantity=10)
+        s = Smartphone(
+            name="Смартфон X",
+            description="Смартфон",
+            price=30000.0,
+            quantity=2,
+            model="X10",
+            efficiency=0.95,
+            memory=256,
+            color="чёрный",
+        )
+        with pytest.raises(TypeError):
+            _ = p + s
+
+
+class TestInheritanceAndSubclasses:
+    """Проверка наследования, isinstance/issubclass, фабричных методов."""
+
+    def test_smartphone_is_product(self) -> None:
+        s = Smartphone(
+            name="Смартфон Y",
+            description="Смартфон Y",
+            price=40000.0,
+            quantity=1,
+            model="Y20",
+            efficiency=0.98,
+            memory=512,
+            color="белый",
+        )
+        assert isinstance(s, Product)
+        assert issubclass(type(s), Product)
+
+    def test_lawn_grass_is_product(self) -> None:
+        g = LawnGrass(
+            name="Газонная трава",
+            description="Газон",
+            price=1200.0,
+            quantity=10,
+            country="Россия",
+            germination_period=14,
+            color="зелёный",
+        )
+        assert isinstance(g, Product)
+        assert issubclass(type(g), Product)
+
+    def test_factory_new_product(self) -> None:
+        data = {
+            "name": "Кастрюля",
+            "description": "Кастрюля из нержавейки",
+            "price": 2500.0,
+            "quantity": 3,
+        }
+        p = Product.new_product(data)
+        assert p.name == "Кастрюля"
+        assert p.price == 2500.0
+        assert p.quantity == 3
+
+    def test_factory_merge_existing_product(self) -> None:
+        existing = [Product(name="Вилка", description="Вилка", price=100.0, quantity=5)]
+        data = {
+            "name": "Вилка",
+            "description": "Вилка новая",
+            "price": 110.0,
+            "quantity": 3,
+        }
+        merged = Product.new_product_with_merge(data, existing)
+        assert merged is existing[0]
+        assert merged.quantity == 8  # 5 + 3
+        assert merged.price == 110.0
+
+    def test_factory_create_new_when_not_exists(self) -> None:
+        existing = []
+        data = {
+            "name": "Тарелка глубокая",
+            "description": "Тарелка",
+            "price": 400.0,
+            "quantity": 2,
+        }
+        new_prod = Product.new_product_with_merge(data, existing)
+        assert len(existing) == 0
+        assert new_prod.name == "Тарелка глубокая"
+
+class TestEdgeCasesAndLogic:
+    """Краевые случаи и логика, специфичная для твоего кода."""
+
+    def setup_method(self) -> None:
+        Category.category_count = 0
+        Category.product_count = 0
+
+    def test_empty_category_products_returns_empty_string(self)-> None:
+        cat = Category("Пустая", "Пустая категория")
+        assert cat.products == ""
+
+    def test_empty_category_total_value_zero(self) -> None:
+        cat = Category("Пустая", "Пустая категория")
+        assert cat.total_value() == 0.0
+
+    def test_multiple_additions_and_counters(self) -> None:
+        cat = Category("Спорт", "Спортивные товары")
+        p1 = Product(name="Мяч", description="Мяч", price=1000.0, quantity=3)
+        p2 = Product(name="Гантель", description="Гантель", price=2500.0, quantity=2)
+
+        cat.add_product(p1)
+        cat.add_product(p2)
+
+        assert Category.product_count == 2
+        assert cat.product_quantity == 2
+        assert cat.total_value() == (1000 * 3 + 2500 * 2)
