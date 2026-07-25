@@ -31,9 +31,13 @@ class Category:
     def add_product(self, product: object) -> None:
         """Добавляет товар в категорию.
 
-        Проверяет, что переданный объект является экземпляром класса Product
-        или любого его наследника (например, Smartphone, LawnGrass).
-        Для этого используются issubclass и isinstance.
+        Основная проверка выполняется через isinstance: она гарантирует,
+        что переданный объект является экземпляром Product или любого
+        его наследника (Smartphone, LawnGrass и т.п.).
+
+        Дополнительно используется issubclass для явной проверки на уровне классов —
+        это демонстрирует требуемый учебный навык: проверка, что тип объекта
+        действительно является подклассом Product.
 
         При успешном добавлении увеличивает глобальный счётчик товаров
         (Category.product_count) на 1.
@@ -45,14 +49,18 @@ class Category:
             TypeError: Если переданный объект не является экземпляром Product
                        или его наследника.
         """
-        if not issubclass(type(product), Product):
+        if not isinstance(product, Product):
             raise TypeError(
                 f"Нельзя добавить объект типа {type(product).__name__} в категорию. "
                 "Разрешены только объекты Product и его наследники."
             )
 
-        if not isinstance(product, Product):
-            raise TypeError("Можно добавлять только объекты класса Product.")
+        product_type = type(product)
+        if not issubclass(product_type, Product):
+            raise TypeError(
+                f"Тип объекта {product_type.__name__} не является подклассом Product, "
+                "хотя isinstance это уже проверил."
+            )
 
         self.__products.append(product)
         Category.product_count += 1

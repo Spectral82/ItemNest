@@ -18,15 +18,36 @@ def main() -> None:
       * демонстрацию специализированных товаров: Smartphone и LawnGrass;
       * тесты защиты add_product: запрет на добавление нетоваров и посторонних объектов.
     """
-    # Сбрасываем счётчики для чистой демонстрации
     Category.category_count = 0
     Category.product_count = 0
 
     print("=== Создание товаров (Product) ===")
-    p1 = Product("Ноутбук X1", "16 ГБ ОЗУ, 512 ГБ SSD", 75000.50, 10)
-    p2 = Product("Мышь беспроводная", "Эргономичная, Bluetooth", 2500.00, 50)
-    p3 = Product("Клавиатура механическая", "RGB подсветка", 8900.99, 25)
-    p4 = Product('Монитор 27"', "4K, IPS матрица", 35000.00, 8)
+    print("--- ПРОВЕРКА МИКСИНА: аргументы выводятся по именам ---")
+
+    p1 = Product(
+        name="Ноутбук X1",
+        description="16 ГБ ОЗУ, 512 ГБ SSD",
+        price=75000.50,
+        quantity=10,
+    )
+    p2 = Product(
+        name="Мышь беспроводная",
+        description="Эргономичная, Bluetooth",
+        price=2500.00,
+        quantity=50,
+    )
+    p3 = Product(
+        name="Клавиатура механическая",
+        description="RGB подсветка",
+        price=8900.99,
+        quantity=25,
+    )
+    p4 = Product(
+        name='Монитор 27"',
+        description="4K, IPS матрица",
+        price=35000.00,
+        quantity=8,
+    )
 
     print(f"Товар: {p1}")
     print(f"  Цена: {p1.price:.2f} ₽")

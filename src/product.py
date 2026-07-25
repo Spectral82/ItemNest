@@ -1,79 +1,55 @@
+from abc import ABC, abstractmethod
 from typing import List
 
 
-class Product:
-    """Товар в интернет‑магазине.
-
-    Предоставляет хранение основных характеристик товара, валидацию цены,
-    создание из словаря, слияние с существующими товарами и базовые операции.
+class LoggingInitMixin:
+    """
+    Простой и надёжный миксин для логирования.
+    Выводит в консоль конструктор объекта с аргументами.
+    ВАЖНО: чтобы в логе были красивые названия параметров (name=..., price=...),
+    создавай объекты, передавая аргументы по именам.
     """
 
-    def __init__(
-        self, name: str, description: str, price: float, quantity: int
-    ) -> None:
-        """Инициализирует товар с заданными параметрами.
+    def __init__(self, *args, **kwargs) -> None:
+        cls = self.__class__
 
-        Устанавливает название, описание и количество напрямую.
-        Для цены используется сеттер с валидацией: значение должно быть положительным.
+        if kwargs:
+            kwargs_repr = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
+            print(f"{cls.__name__}({kwargs_repr})")
+        else:
+            args_repr = ", ".join(repr(a) for a in args)
+            print(f"{cls.__name__}({args_repr})")
 
-        Args:
-            name: Название товара.
-            description: Описание товара.
-            price: Цена товара (должна быть > 0).
-            quantity: Количество единиц товара на складе.
-        """
-        self.name = name
-        self.description = description
-        self.__price: float = 0.0
-        self.price = price
-        self.quantity = quantity
+        super().__init__(*args, **kwargs)
+
+
+class BaseProduct(ABC):
+    """Абстрактный базовый класс для всех продуктов."""
 
     @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
     def price(self) -> float:
-        """Возвращает текущую цену товара.
+        pass
 
-        Returns:
-            Цена товара в рублях.
-        """
-        return self.__price
+    @property
+    @abstractmethod
+    def quantity(self) -> int:
+        pass
 
-    @price.setter
-    def price(self, value: float) -> None:
-        """Устанавливает новую цену товара с валидацией.
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
 
-        Цена должна быть строго больше нуля. Если передано значение <= 0,
-        цена не обновляется, а в stdout выводится сообщение об ошибке.
+    def total_cost(self) -> float:
+        return self.price * self.quantity
 
-        Args:
-            value: Новое значение цены.
-        """
-        if value <= 0:
-            print("Цена не должна быть нулевая или отрицательная")
-            return
-        self.__price = value
-
-    def __add__(self, other: "Product") -> float:
-        """Вычисляет суммарную стоимость двух товаров на складе.
-
-        Сложение разрешено только между объектами ОДНОГО И ТОГО ЖЕ класса.
-        Проверка осуществляется через type(self) == type(other).
-        Если классы различаются, выбрасывается TypeError.
-
-        Результат равен сумме произведений цены на количество для обоих товаров:
-        (self.price * self.quantity) + (other.price * other.quantity).
-
-        Если other не является экземпляром Product, возвращается NotImplemented.
-
-        Args:
-            other: Другой объект Product для сложения.
-
-        Returns:
-            Суммарная стоимость двух товаров в рублях.
-
-        Raises:
-            TypeError: Если self и other — экземпляры разных классов (например, Smartphone и LawnGrass).
-        """
-        if not isinstance(other, Product):
+    def __add__(self, other: "BaseProduct") -> float:
+        if not isinstance(other, BaseProduct):
             return NotImplemented
 
         if type(self) != type(other):
@@ -83,7 +59,46 @@ class Product:
                 "Сложение разрешено только для одинаковых классов товаров."
             )
 
-        return (self.price * self.quantity) + (other.price * other.quantity)
+        return self.total_cost() + other.total_cost()
+
+
+class Product(LoggingInitMixin, BaseProduct):
+    """Основной класс товара."""
+
+    def __init__(
+        self, name: str, description: str, price: float, quantity: int
+    ) -> None:
+        self._name = name
+        self.description = description
+        self.__price: float = 0.0
+        self.price = price
+        self._quantity = quantity
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def price(self) -> float:
+        return self.__price
+
+    @price.setter
+    def price(self, value: float) -> None:
+        if value <= 0:
+            print("Цена не должна быть нулевая или отрицательная")
+            return
+        self.__price = value
+
+    @property
+    def quantity(self) -> int:
+        return self._quantity
+
+    @quantity.setter
+    def quantity(self, value: int) -> None:
+        if value < 0:
+            print("Количество не может быть отрицательным")
+            return
+        self._quantity = value
 
     def __str__(self) -> str:
         """Возвращает читаемое строковое представление товара.
@@ -128,7 +143,7 @@ class Product:
 
         Если товар с таким именем уже есть в списке existing_products,
         увеличивает его количество и обновляет цену (если новая цена выше).
-        Если товара нет — создаёт и возвращает новый экземпляр.
+        Если товара нет — создаёт и возвращает новый экземпляр.
 
         Args:
             data: Словарь с данными о товаре (name, price, quantity, description).
