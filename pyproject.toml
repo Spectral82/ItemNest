@@ -50,8 +50,6 @@ max-line-length = 88
 extend-ignore = ["E203"]
 exclude = [".git", "__pycache__", "venv", "build", "dist"]
 per-file-ignores = [
-    # Пример: если где-то нужно игнорировать конкретные ошибки
-    # "src/utils.py:F401"
 ]
 
 [tool.mypy]
