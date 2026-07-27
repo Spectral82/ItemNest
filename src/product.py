@@ -69,7 +69,14 @@ class Product(LoggingInitMixin, BaseProduct):
     def __init__(
         self, name: str, description: str, price: float, quantity: int
     ) -> None:
-        """Инициализирует товар с проверкой корректности цены и количества."""
+        """Инициализирует товар с проверкой корректности цены и количества.
+
+        ВАЖНО: по требованию задания при попытке создать товар с quantity == 0
+        выбрасывается ValueError, прерывая создание экземпляра.
+        """
+        if quantity == 0:
+            raise ValueError("Товар с нулевым количеством не может быть добавлен")
+
         self._name = name
         self.description = description
         self.__price: float = 0.0
@@ -101,7 +108,12 @@ class Product(LoggingInitMixin, BaseProduct):
 
     @quantity.setter
     def quantity(self, value: int) -> None:
-        """Устанавливает количество, если оно неотрицательное."""
+        """Устанавливает количество, если оно неотрицательное.
+
+        Обратите внимание: этот сеттер НЕ запрещает quantity == 0,
+        потому что запрет на ноль действует только при создании (__init__).
+        После создания товара количество может уменьшаться вплоть до 0.
+        """
         if value < 0:
             print("Количество не может быть отрицательным")
             return

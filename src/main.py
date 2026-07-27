@@ -1,5 +1,5 @@
-from .category import Category
-from .product import LawnGrass, Product, Smartphone
+from src.category import Category
+from src.product import LawnGrass, Product, Smartphone
 
 
 def main() -> None:
@@ -10,14 +10,16 @@ def main() -> None:
       * создание базовых товаров и категорий;
       * демонстрацию добавления товаров в категории;
       * проверку логики слияния товаров (new_product_with_merge);
-      * валидацию цены;
+      * валидацию цены и количества (в том числе запрет quantity == 0 при создании);
       * работу строковых представлений (__str__) для Product и Category;
       * отчёты по товарам и глобальную статистику;
       * расчёт суммарной стоимости товаров в категории;
       * демонстрацию магического метода __add__ для Product (с ограничением по классам);
       * демонстрацию специализированных товаров: Smartphone и LawnGrass;
-      * тесты защиты add_product: запрет на добавление нетоваров и посторонних объектов.
+      * тесты защиты add_product: запрет на добавление нетоваров и посторонних объектов;
+      * демонстрацию нового метода average_price() и обработку пустой категории.
     """
+    # Сброс счётчиков для чистой демонстрации
     Category.category_count = 0
     Category.product_count = 0
 
@@ -210,7 +212,7 @@ def main() -> None:
     )
     print(f"{grass}")
 
-    print(f"\nСмартфон - это уникальный проукт? {isinstance(phone, Product)}")
+    print(f"\nСмартфон - это уникальный продукт? {isinstance(phone, Product)}")
     print(f"Трава - это уникальный продукт? {isinstance(grass, Product)}")
 
     electronics.add_product(phone)
@@ -276,6 +278,57 @@ def main() -> None:
     print(f"Суммарная стоимость двух видов травы: {total_grass_same:.0f} руб.")
 
     # ==========================================================================
+    # ДЕМОНСТРАЦИЯ ОШИБКИ ПРИ СОЗДАНИИ ТОВАРА С QUANTITY == 0
+    # ==========================================================================
+    print("\n" + "=" * 60)
+    print(
+     "ДЕМОНСТРАЦИЯ: попытка создать товар с quantity == 0 (должна вызвать ValueError)"
+    )
+    print("=" * 60)
+
+    try:
+        bad_product = Product(
+            name="Плохой товар",
+            description="Нельзя создать с нулевым количеством",
+            price=1000.0,
+            quantity=0,
+        )
+        print("ОШИБКА: товар был создан, хотя не должен был!")
+    except ValueError as e:
+        print("Поймана ожидаемая ошибка при создании товара:")
+        print(e)
+
+    print("\nНо можно установить quantity = 0 у уже существующего товара через сеттер:")
+    p_test = Product(
+        name="Тестовый товар",
+        description="Только для проверки сеттера",
+        price=500.0,
+        quantity=10,
+    )
+    p_test.quantity = 0
+    print(f"Теперь у товара '{p_test.name}' количество: {p_test.quantity} шт.")
+
+    # ==========================================================================
+    # ДЕМОНСТРАЦИЯ СРЕДНЕГО ЦЕННИКА (average_price)
+    # ==========================================================================
+    print("\n" + "=" * 60)
+    print("ДЕМОНСТРАЦИЯ: расчёт средней цены товаров в категории")
+    print("=" * 60)
+
+    print(
+        f"Средняя цена в категории '{electronics.name}': {electronics.average_price():.2f} руб."
+    )
+    print(
+        f"Средняя цена в категории '{displays.name}': {displays.average_price():.2f} руб."
+    )
+
+    empty_category = Category(name="Пустая категория", description="Нет товаров")
+    avg_empty = empty_category.average_price()
+    print(
+        f"Средняя цена в пустой категории '{empty_category.name}': {avg_empty:.2f} руб. (должно быть 0.0)"
+    )
+
+    # ==========================================================================
     # ТЕСТ ЗАЩИТЫ add_product (issubclass / isinstance)
     # ==========================================================================
     print("\n" + "=" * 60)
@@ -335,6 +388,11 @@ def main() -> None:
     print(
         f"\nИтоговая стоимость товаров в категории '{electronics.name}': "
         f"{formatted_final} ₽"
+    )
+
+    print(
+        f"\nСредняя цена в категории 'Электроника' после всех добавлений: "
+        f"{electronics.average_price():.2f} руб."
     )
 
 
